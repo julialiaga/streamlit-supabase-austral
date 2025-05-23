@@ -1,40 +1,43 @@
 import streamlit as st
-from functions import execute_query
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-st.title("Registro")
+from utils.layout import set_background_color, add_logo_and_header, add_footer
+from utils.db import execute_query
+
+st.set_page_config(page_title="Registro")
+set_background_color()
+add_logo_and_header()
+
+st.title("Registro de Cuenta")
 
 tipo = st.selectbox("¿Te registrás como?", ["Usuario", "Empresa"])
-
 nombre = st.text_input("Nombre")
 mail = st.text_input("Correo electrónico")
 contrasena = st.text_input("Contraseña", type="password")
 direccion = st.text_input("Dirección")
 telefono = st.text_input("Teléfono (solo números)")
-
-if tipo == "Empresa":
-    cuit = st.text_input("CUIT (solo números)")
+cuit = st.text_input("CUIT (solo si sos empresa)") if tipo == "Empresa" else None
 
 if st.button("Registrarme"):
-    if not nombre or not mail or not contrasena or not telefono:
-        st.warning("Por favor completá los campos obligatorios.")
-    elif not telefono.isdigit():
-        st.warning("El teléfono debe contener solo números.")
+    if not nombre or not mail or not contrasena or not direccion or not telefono:
+        st.warning("Por favor completá todos los campos obligatorios.")
     elif tipo == "Empresa" and (not cuit or not cuit.isdigit()):
         st.warning("El CUIT debe contener solo números.")
+    elif not telefono.isdigit():
+        st.warning("El teléfono debe contener solo números.")
     else:
         tabla = "empresa" if tipo == "Empresa" else "usuario"
-
-        # Verificamos si ya existe ese correo
         check_query = f"SELECT * FROM {tabla} WHERE mail = '{mail}'"
-        check_result = execute_query(check_query)
-
-        if not check_result.empty:
+        existe = execute_query(check_query)
+        if not existe.empty:
             st.error("Ya existe una cuenta registrada con ese correo.")
         else:
             if tipo == "Empresa":
                 insert_query = f"""
                     INSERT INTO empresa (nombre, mail, contrasena, direccion, telefono, cuit)
-                    VALUES ('{nombre}', '{mail}', '{contrasena}', '{direccion}', '{telefono}', {int(cuit)})
+                    VALUES ('{nombre}', '{mail}', '{contrasena}', '{direccion}', '{telefono}', '{cuit}')
                 """
             else:
                 insert_query = f"""
@@ -45,4 +48,6 @@ if st.button("Registrarme"):
             if success:
                 st.success("Registro exitoso. Ya podés iniciar sesión.")
             else:
-                st.error("Ocurrió un error al registrar. Intentá de nuevo.")
+                st.error("Ocurrió un error durante el registro.")
+
+add_footer()
