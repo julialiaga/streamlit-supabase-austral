@@ -1,6 +1,6 @@
 [theme]
-primaryColor = "#60A5FA"
-backgroundColor = "#0F172A"
-secondaryBackgroundColor = "#1E293B"
-textColor = "#F8FAFC"
+primaryColor = "#6ABAD7"  # Celeste para botones
+backgroundColor = "#FFFFFF"  # Fondo blanco
+secondaryBackgroundColor = "#F2F2F2"  # Grises muy claros para fondos secundarios
+textColor = "#2E2E2E"  # Negro suave o gris grafito (textos)
 font = "sans serif"

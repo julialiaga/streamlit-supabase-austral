@@ -1,0 +1,87 @@
+/* ---------- Fondo general y fuente ---------- */
+body, .stApp {
+    background-color: #FFFFFF;
+    color: #0C1F33;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* ---------- Sidebar ---------- */
+[data-testid="stSidebar"] {
+    background-color: #A6C9E2;
+    border-right: 1px solid #3D6FA5;
+}
+
+/* ---------- Títulos y subtítulos ---------- */
+h1, h2, h3, h4 {
+    color: #0C1F33;
+}
+
+/* ---------- Botones ---------- */
+.stButton > button {
+    background-color: #6ABAD7;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.5em 1.2em;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+    transition: 0.3s ease-in-out;
+}
+
+.stButton > button:hover {
+    background-color: #468DAA;
+    transform: scale(1.03);
+}
+
+/* ---------- Inputs ---------- */
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+textarea, 
+select {
+    background-color: #FFFFFF !important;
+    border: 1px solid #6ABAD7 !important;
+    color: #0C1F33 !important;
+    border-radius: 8px;
+    padding: 0.5em;
+}
+
+/* ---------- DataFrames / Tablas ---------- */
+.stDataFrame {
+    border: 1px solid #3D6FA5;
+    border-radius: 8px;
+}
+
+/* ---------- Footer personalizado ---------- */
+.custom-footer {
+    margin-top: 2em;
+    padding-top: 1em;
+    border-top: 1px solid #3D6FA5;
+    color: #0C1F33;
+    font-size: 0.85em;
+    text-align: center;
+}
+
+/* ---------- Encabezado personalizado ---------- */
+.header-bar {
+    background-color: #A6C9E2;
+    padding: 20px;
+    border-radius: 0 0 12px 12px;
+    text-align: center;
+    margin-top: -30px;
+}
+
+.header-title {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    color: #0C1F33;
+    margin: 0;
+}
+
+.header-subtitle {
+    text-align: center;
+    color: white;
+    margin-top: 10px;
+    font-size: 18px;
+}

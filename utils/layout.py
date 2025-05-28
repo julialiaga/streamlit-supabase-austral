@@ -6,7 +6,7 @@ def set_global_styles():
         <style>
         /* Fondo principal celeste claro */
         body, .stApp {
-            background-color: #A6C9E2;
+            background-color: #FFFFFF;
             color: #0C1F33;
             font-family: 'Segoe UI', sans-serif;
         }
@@ -24,7 +24,7 @@ def set_global_styles():
 
         /* Botones */
         .stButton > button {
-            background-color: #C0C0C0;
+            background-color: #A6C9E2;
             color: white;
             border: none;
             border-radius: 10px;
@@ -66,62 +66,44 @@ def set_global_styles():
 
 
 def add_logo_and_header():
-        # Cargar el logo desde la carpeta local
-    logo_path = "assets/logo.png"
-
-    # Mostrar logo alineado a la izquierda
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        st.image(logo_path, width=120)
-    with col2:
-        st.markdown("")  # Espacio vacío
-
     st.markdown("""
         <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@800&display=swap" rel="stylesheet">
         <style>
-            .header-top {
-                display: flex;
-                align-items: flex-start;
-                justify-content: flex-start;
-                padding: 10px 30px 0 30px;
-            }
-
-            .header-top img {
-                height: 90px;
-            }
-
-            .header-bar {
+            /* Franja fija arriba */
+            .sticky-header {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
                 background-color: #A6C9E2;
-                padding: 20px;
-                border-radius: 0 0 12px 12px;
+                z-index: 9999;
+                padding: 20px 0;
                 text-align: center;
-                margin-top: -30px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             }
 
-            .header-title {
+            .sticky-header h1 {
+                margin: 0;
+                position: relative;
+                top: 22px;  /* 👈 Esto baja solo el texto sin modificar la altura de la franja */
                 font-family: 'Exo 2', sans-serif;
-                font-size: 48px;
+                font-size: 40px;
                 font-weight: 800;
                 color: #0C1F33;
-                margin: 0;
             }
 
-            .header-subtitle {
-                text-align: center;
-                color: white;
-                margin-top: 10px;
-                font-size: 18px;
+
+            /* Agrega espacio arriba al contenido para que no quede tapado */
+            .stApp {
+                padding-top: 100px !important;
             }
         </style>
 
-        <div class="header-top">
-            <img src="https://raw.githubusercontent.com/ChiriMauro/prothesia-assets/main/logo.png" />
+        <div class="sticky-header">
+            <h1>PROTHESIA</h1>
         </div>
-        <div class="header-bar">
-            <div class="header-title">PROTHESIA</div>
-        </div>
-        <div class="header-subtitle">Conectando necesidades con soluciones</div>
     """, unsafe_allow_html=True)
+
 
 
 def add_footer():
@@ -130,3 +112,7 @@ def add_footer():
             Plataforma desarrollada por el Grupo 8: Aliaga Julieta y Chiri Julieta
         </div>
     """, unsafe_allow_html=True)
+
+def load_css(file_path="assets/style.css"):
+    with open(file_path) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
