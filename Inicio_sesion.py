@@ -6,10 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 from utils.layout import set_global_styles, add_logo_and_header, add_footer, load_css
 from utils.db import execute_query
 
-
-
 st.set_page_config(page_title="Ingreso", page_icon="🦾", layout="centered")
-
 load_css("assets/style.css")
 
 # Inicializar estados
@@ -62,6 +59,14 @@ if st.session_state["vista"] == "inicio":
                 if not resultado.empty:
                     st.success("Inicio de sesión exitoso.")
                     st.session_state[tipo] = resultado.iloc[0].to_dict()
+
+                    # 🔁 Redirigir según el tipo de login
+                    if tipo == "empresa":
+                        st.session_state["vista"] = "empresa"
+                        st.rerun()
+                    elif tipo == "usuario":
+                        st.session_state["vista"] = "usuario"
+                        st.rerun()
                 else:
                     st.error("Correo o contraseña incorrectos.")
 
@@ -81,6 +86,11 @@ if st.session_state["vista"] == "inicio":
 # VISTA REGISTRO
 elif st.session_state["vista"] == "registro":
     from views import Registro
-    Registro.mostrar()  # si definiste una función mostrar() en ese archivo
+    Registro.mostrar()
+
+# 🔁 VISTA EMPRESA (redireccionada desde login)
+elif st.session_state["vista"] == "empresa":
+    from views import Vista_empresa
+    Vista_empresa.mostrar()
 
 add_footer()

@@ -24,7 +24,7 @@ if st.button("Iniciar sesión"):
         if not resultado.empty:
             st.success("Inicio de sesión exitoso.")
             st.session_state["empresa"] = resultado.iloc[0].to_dict()
-            # Redirigir si querés
+            st.session_state["vista"] = "Vista_empresa"
         else:
             st.error("Correo o contraseña incorrectos.")
 
