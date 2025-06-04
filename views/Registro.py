@@ -12,6 +12,7 @@ def mostrar():
     add_page_specific_styles("registro")
     
     # Contenedor principal con estilo
+   
     
     st.markdown('<h2 class="registro-title">Registro de Cuenta</h2>', unsafe_allow_html=True)
     
@@ -19,7 +20,7 @@ def mostrar():
     st.markdown("<br>", unsafe_allow_html=True)
     
     # Selector de tipo de usuario
-    tipo = st.selectbox(" ¿Te registrás como?", ["Usuario", "Empresa"], 
+    tipo = st.selectbox("¿Te registrás como?", ["Usuario", "Empresa"], 
                        help="Selecciona el tipo de cuenta que deseas crear")
     
     # Espaciado
@@ -50,7 +51,7 @@ def mostrar():
     col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
     
     with col_btn1:
-        if st.button("⬅ Volver al Login", use_container_width=True):
+        if st.button("⬅ Volver al Login", use_container_width=True, help="Regresar al inicio de sesión"):
             st.session_state["vista"] = "inicio"
             st.rerun()
     
@@ -110,6 +111,6 @@ def mostrar():
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("""
         <div style='text-align: center; color: #0C1F33; font-size: 0.9em; margin-top: 1rem;'>
-            <p> 🔒 Tu información está protegida y no será compartida con terceros</p>
+            <p>🔒 Tu información está protegida y no será compartida con terceros</p>
         </div>
     """, unsafe_allow_html=True)

@@ -226,16 +226,33 @@ def add_page_specific_styles(page_type="default"):
                 font-weight: 700;
             }
             
-            /* Botón primario con tu color específico */
+            /* Botón primario (Registrarme) - Destacado con tu color */
             .stButton > button[kind="primary"] {
                 background-color: #7BA7D1 !important;
                 border: none !important;
                 color: white !important;
+                font-weight: bold !important;
+                box-shadow: 0 4px 12px rgba(123, 167, 209, 0.4) !important;
             }
             
             .stButton > button[kind="primary"]:hover {
                 background-color: #6A96C0 !important;
-                transform: scale(1.02);
+                transform: scale(1.05) !important;
+                box-shadow: 0 6px 16px rgba(123, 167, 209, 0.6) !important;
+            }
+            
+            /* Botón secundario (Volver) - Más sutil */
+            .stButton > button:not([kind="primary"]) {
+                background-color: #E8E8E8 !important;
+                color: #666666 !important;
+                border: 1px solid #CCCCCC !important;
+                font-weight: normal !important;
+            }
+            
+            .stButton > button:not([kind="primary"]):hover {
+                background-color: #D4D4D4 !important;
+                color: #555555 !important;
+                transform: scale(1.02) !important;
             }
             </style>
         """, unsafe_allow_html=True)
