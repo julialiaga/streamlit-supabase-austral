@@ -3,7 +3,7 @@ import sys, os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 
-from utils.layout import set_global_styles, add_logo_and_header, add_footer, load_css
+from utils.layout import set_global_styles, add_logo_and_header, add_footer, load_css, add_page_specific_styles
 from utils.db import execute_query
 
 st.set_page_config(page_title="Ingreso", page_icon="🦾", layout="centered")
@@ -19,78 +19,102 @@ if "vista" not in st.session_state:
 # Estética general
 set_global_styles()
 add_logo_and_header()
+add_page_specific_styles("login")  # Estilos específicos para login
 
 # VISTA INICIO
 if st.session_state["vista"] == "inicio":
-    st.markdown("## ¿Cómo quieres ingresar?", unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns([2, 1, 2])
-
-    with col1:
-        st.markdown("<div style='text-align: right;'>", unsafe_allow_html=True)
-        if st.button("👤 Ingresar como Usuario"):
-            st.session_state.tipo_login = "usuario"
-        st.markdown("</div>", unsafe_allow_html=True)
-
+    
+    
+    st.markdown('<h2 class="login-title">¿Cómo quieres ingresar?</h2>', unsafe_allow_html=True)
+    
+    # Espaciado
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
     with col2:
-        st.markdown("<div style='width: 30px;'></div>", unsafe_allow_html=True)
-
-    with col3:
-        st.markdown("<div style='text-align: left;'>", unsafe_allow_html=True)
-        if st.button("🏢 Ingresar como Empresa"):
-            st.session_state.tipo_login = "empresa"
-        st.markdown("</div>", unsafe_allow_html=True)
-
+        # Botones centrados y con mejor estilo
+        col_btn1, col_btn2 = st.columns(2)
+        
+        with col_btn1:
+            if st.button("👤 Usuario", use_container_width=True):
+                st.session_state.tipo_login = "usuario"
+        
+        with col_btn2:
+            if st.button("🏢 Empresa", use_container_width=True):
+                st.session_state.tipo_login = "empresa"
+    
+    # Formulario de login
     if st.session_state.tipo_login:
         tipo = st.session_state.tipo_login
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown(f"### Inicio de sesión - {tipo.capitalize()}", unsafe_allow_html=True)
-
-        correo = st.text_input("Correo electrónico", key="mail_" + tipo)
-        contrasena = st.text_input("Contraseña", type="password", key="pass_" + tipo)
-
-        if st.button("Iniciar sesión"):
-            if not correo or not contrasena:
-                st.warning("Por favor completá todos los campos.")
-            else:
-                tabla = "usuario" if tipo == "usuario" else "empresa"
-                query = f"SELECT * FROM {tabla} WHERE mail = '{correo}' AND contrasena = '{contrasena}'"
-                resultado = execute_query(query)
-
-                if not resultado.empty:
-                    st.success("Inicio de sesión exitoso.")
-                    st.session_state[tipo] = resultado.iloc[0].to_dict()
-
-                    # 🔁 Redirigir según el tipo de login
-                    if tipo == "empresa":
-                        st.session_state["vista"] = "empresa"
-                        st.rerun()
-                    elif tipo == "usuario":
-                        st.session_state["vista"] = "usuario"
-                        st.rerun()
+        
+        # Espaciado
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        correo = st.text_input("Correo electrónico", key="mail_" + tipo, placeholder="ejemplo@correo.com")
+        contrasena = st.text_input("Contraseña", type="password", key="pass_" + tipo, placeholder="Ingresa tu contraseña")
+        
+        # Espaciado
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        col_login1, col_login2 = st.columns(2)
+        
+        with col_login1:
+            if st.button("Iniciar sesión", use_container_width=True):
+                if not correo or not contrasena:
+                    st.warning("⚠️ Por favor completá todos los campos.")
                 else:
-                    st.error("Correo o contraseña incorrectos.")
-
-        if st.button("⬅️ Volver"):
-            st.session_state.tipo_login = None
-
+                    tabla = "usuario" if tipo == "usuario" else "empresa"
+                    query = f"SELECT * FROM {tabla} WHERE mail = '{correo}' AND contrasena = '{contrasena}'"
+                    resultado = execute_query(query)
+                    
+                    if not resultado.empty:
+                        st.success("Inicio de sesión exitoso.")
+                        st.session_state[tipo] = resultado.iloc[0].to_dict()
+                        
+                        # Redirigir según el tipo de login
+                        if tipo == "empresa":
+                            st.session_state["vista"] = "empresa"
+                            st.rerun()
+                        elif tipo == "usuario":
+                            st.session_state["vista"] = "usuario"
+                            st.rerun()
+                    else:
+                        st.error("❌ Correo o contraseña incorrectos.")
+        
+        with col_login2:
+            if st.button("⬅ Volver", use_container_width=True):
+                st.session_state.tipo_login = None
+                st.rerun()
+    
     # Enlace a registro
     st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>¿No estás registrado? Hace click en <strong>Ir a registro</strong></p>", unsafe_allow_html=True)
-
-    col = st.columns(3)
-    with col[1]:
-        if st.button("Ir a registro"):
+    st.markdown("<p style='text-align: center; color: #0C1F33;'>¿No estás registrado?</p>", unsafe_allow_html=True)
+    
+    col_reg = st.columns([1, 2, 1])
+    with col_reg[1]:
+        if st.button("Ir a registro", use_container_width=True):
             st.session_state["vista"] = "registro"
             st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Cerrar contenedor
 
 # VISTA REGISTRO
 elif st.session_state["vista"] == "registro":
     from views import Registro
     Registro.mostrar()
 
-# 🔁 VISTA EMPRESA (redireccionada desde login)
+# VISTA EMPRESA (redireccionada desde login)
 elif st.session_state["vista"] == "empresa":
     from views import Vista_empresa
     Vista_empresa.mostrar()
+
+# VISTA USUARIO (redireccionada desde login)
+elif st.session_state["vista"] == "usuario":
+    from views import Login_usuario
+    Login_usuario.mostrar()
 
 add_footer()
