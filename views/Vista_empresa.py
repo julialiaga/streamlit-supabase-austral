@@ -198,7 +198,7 @@ def mostrar():
     
     productos_activos = execute_query(f"""
         SELECT COUNT(*) as total FROM producto 
-        WHERE id_empresa = {id_empresa} AND estado = 'Activo'
+        WHERE id_empresa = {id_empresa}
     """)
     
     total_prod = total_productos.iloc[0]['total'] if not total_productos.empty else 0
@@ -222,7 +222,7 @@ def mostrar():
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("## 🛍️ Tus Productos Recientes")
+    st.markdown("## Tus Productos Recientes")
     
     # Obtener últimos productos
     productos = execute_query(f"""
@@ -258,31 +258,26 @@ def mostrar():
     
     # Sección de acciones principales
     st.markdown("---")
-    st.markdown("## 🚀 Acciones Rápidas")
+    st.markdown("## Acciones Rápidas")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("### 🔍 Productos")
+        st.markdown("### Productos")
         if st.button("Ver todos mis productos", key="ver_productos", help="Administra todos tus productos"):
             st.session_state["vista"] = "productos_empresa"
             st.rerun()
         
         if st.button("➕ Cargar nuevo producto", key="cargar_producto", help="Agregar un producto al catálogo"):
-            st.session_state["vista"] = "cargar_producto"
+            st.session_state["vista"] = "Cargar_producto"  # ← Solución: mayúsculas como en el archivo principal
             st.rerun()
     
     with col2:
-        st.markdown("### 📊 Consultas")
-        consulta_tipo = st.selectbox(
-            "Tipo de consultas:",
-            ["Recientes", "Respondidas", "Pendientes"],
-            help="Selecciona el tipo de consultas que quieres ver"
-        )
-        if st.button("📬 Ver consultas", key="ver_consultas"):
-            st.session_state["vista"] = "consultas_empresa"
-            st.session_state["filtro_consulta"] = consulta_tipo
+        st.markdown("### Consultas")
+        if st.button("Ver consultas", key="ver_consultas"):
+            st.session_state["vista"] = "Ver_consultas"
             st.rerun()
+
     
     with col3:
         st.markdown("### ⚙️ Configuración")
@@ -303,5 +298,3 @@ def mostrar():
         - **Precios competitivos**: Investiga el mercado para establecer precios justos
         - **Actualiza regularmente**: Mantén tu catálogo actualizado con nuevos productos
         """)
-    
-    add_footer()

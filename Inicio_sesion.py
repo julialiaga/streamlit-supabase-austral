@@ -78,7 +78,7 @@ if st.session_state["vista"] == "inicio":
                         
                         # Redirigir según el tipo de login
                         if tipo == "empresa":
-                            st.session_state["vista"] = "empresa"
+                            st.session_state["vista"] = "vista_empresa"  # CAMBIO AQUÍ
                             st.rerun()
                         elif tipo == "usuario":
                             st.session_state["vista"] = "usuario"
@@ -109,13 +109,28 @@ elif st.session_state["vista"] == "registro":
     Registro.mostrar()
 
 # VISTA EMPRESA (redireccionada desde login)
-elif st.session_state["vista"] == "empresa":
+elif st.session_state["vista"] == "vista_empresa":  # CAMBIO AQUÍ
     from views import Vista_empresa
     Vista_empresa.mostrar()
+
+# NUEVA CARGAR PRODUCTO
+elif st.session_state["vista"] == "Cargar_producto":
+    from views import Cargar_producto
+    Cargar_producto.mostrar()
+
+# VISTA PRODUCTOS DE EMPRESA
+elif st.session_state["vista"] == "productos_empresa":
+    from views import productos_empresa
+    productos_empresa.mostrar()
 
 # VISTA USUARIO (redireccionada desde login)
 elif st.session_state["vista"] == "usuario":
     from views import Login_usuario
     Login_usuario.mostrar()
+
+# NUEVA VER CONSULTAS
+elif st.session_state["vista"] == "Ver_consultas":
+    from views import Ver_consultas
+    Ver_consultas.mostrar()
 
 add_footer()
