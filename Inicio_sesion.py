@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 from utils.layout import set_global_styles, add_logo_and_header, add_footer, load_css, add_page_specific_styles
 from utils.db import execute_query
 
-st.set_page_config(page_title="Ingreso", page_icon="🦾", layout="centered")
+st.set_page_config(page_title="Prothesia", page_icon="🦾", layout="centered")
 load_css("assets/style.css")
 
 # Inicializar estados
@@ -81,7 +81,7 @@ if st.session_state["vista"] == "inicio":
                             st.session_state["vista"] = "vista_empresa"  # CAMBIO AQUÍ
                             st.rerun()
                         elif tipo == "usuario":
-                            st.session_state["vista"] = "usuario"
+                            st.session_state["vista"] = "vista_usuario"
                             st.rerun()
                     else:
                         st.error("❌ Correo o contraseña incorrectos.")
@@ -113,7 +113,7 @@ elif st.session_state["vista"] == "vista_empresa":  # CAMBIO AQUÍ
     from views import Vista_empresa
     Vista_empresa.mostrar()
 
-# NUEVA CARGAR PRODUCTO
+# CARGAR PRODUCTO
 elif st.session_state["vista"] == "Cargar_producto":
     from views import Cargar_producto
     Cargar_producto.mostrar()
@@ -123,14 +123,21 @@ elif st.session_state["vista"] == "productos_empresa":
     from views import productos_empresa
     productos_empresa.mostrar()
 
-# VISTA USUARIO (redireccionada desde login)
-elif st.session_state["vista"] == "usuario":
-    from views import Login_usuario
-    Login_usuario.mostrar()
 
-# NUEVA VER CONSULTAS
+# VER CONSULTAS
 elif st.session_state["vista"] == "Ver_consultas":
     from views import Ver_consultas
     Ver_consultas.mostrar()
+
+# VISTA USUARIO
+elif st.session_state["vista"] == "vista_usuario":
+    from views import Vista_usuario
+    Vista_usuario.mostrar()
+
+# VISTA CONSULTAS USUARIO
+elif st.session_state["vista"] == "consultas_usuario":
+    from views import Consultas_usuario
+    Consultas_usuario.mostrar()
+
 
 add_footer()

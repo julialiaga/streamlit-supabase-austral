@@ -35,7 +35,7 @@ def mostrar():
     col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
 
     with col_btn1:
-        if st.button("⬅ Volver al Login", use_container_width=True):
+        if st.button("⬅ Volver", use_container_width=True):
             st.session_state["vista"] = "inicio"
             st.rerun()
 

@@ -6,7 +6,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.layout import set_background_color, add_logo_and_header, add_footer
 from utils.db import execute_query
 
-st.set_page_config(page_title="Login Usuario")
 set_background_color()
 add_logo_and_header()
 
@@ -23,9 +22,9 @@ if st.button("Iniciar sesión"):
         resultado = execute_query(query)
         if not resultado.empty:
             st.success("Inicio de sesión exitoso.")
-            st.session_state["usuario"] = resultado.iloc[0].to_dict()
-            # Podés redirigir a otra página si querés
+            st.session_state["vista"] = "vista_usuario"
+            st.rerun()
         else:
             st.error("Correo o contraseña incorrectos.")
 
-add_footer()
+

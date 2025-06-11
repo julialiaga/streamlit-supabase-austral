@@ -170,11 +170,11 @@ def mostrar():
         return
     
     # Botón de volver
-    if st.button("← Volver al inicio de sesión", key="volver_inicio", help="Cerrar sesión y volver al inicio"):
+    if st.button("← Volver", key="volver_inicio", help="Cerrar sesión y volver al inicio"):
         # Limpiar session state de empresa
         if "empresa" in st.session_state:
             del st.session_state["empresa"]
-        st.session_state["vista"] = "inicio_sesion"
+        st.session_state["vista"] = "inicio"
         st.rerun()
     
     # Header de empresa
