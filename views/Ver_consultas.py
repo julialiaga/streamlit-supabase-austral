@@ -11,12 +11,6 @@ def mostrar():
     st.markdown("## Consultas Recibidas")
     st.markdown("---")
 
-    col1, col2 = st.columns([1, 6])
-    with col1:
-        if st.button("← Volver"):
-            st.session_state["vista"] = "vista_empresa"
-            st.rerun()
-
     empresa = st.session_state.get("empresa", {})
     id_empresa = empresa.get("id_empresa") or empresa.get("ID_empresa")
 
@@ -47,33 +41,60 @@ def mostrar():
     pendientes = df[df['estado_consulta'] == 'Pendiente']
     otras = df[df['estado_consulta'] != 'Pendiente']
 
-    def mostrar_tarjeta(row):
-        with st.container():
-            st.markdown(f"### 💬 Producto: {row['nombre_producto']}")
-            st.markdown(f"**👤 Usuario:** {row['nombre_usuario']} | ✉️ {row['mail_usuario']}")
-            st.markdown(f"📅 Fecha: {pd.to_datetime(row['fecha']).strftime('%d/%m/%Y %H:%M')}")
-            st.markdown(f"🟢 Estado: `{row['estado_consulta']}`")
-
-            # Texto del mensaje
-            mensaje = row['mensaje']
-            if len(mensaje) > 200:
-                with st.expander("📩 Ver mensaje completo"):
-                    st.markdown(mensaje)
-            else:
-                st.markdown(f"**Mensaje:** {mensaje}")
-            
-            st.markdown("---")
-
     # Mostrar pendientes
     if not pendientes.empty:
-        st.subheader("🔴 Consultas Pendientes")
+        st.markdown("<h3 style='color: #2C5282;'>Consultas Pendientes</h3>", unsafe_allow_html=True)
         for _, row in pendientes.iterrows():
-            mostrar_tarjeta(row)
+            with st.container():
+                st.markdown(f"### 💬 Producto: {row['nombre_producto']}")
+                st.markdown(f"**👤 Usuario:** {row['nombre_usuario']} | ✉️ {row['mail_usuario']}")
+                st.markdown(f"📅 Fecha: {pd.to_datetime(row['fecha']).strftime('%d/%m/%Y %H:%M')}")
+                st.markdown(f"🟢 Estado: `{row['estado_consulta']}`")
+
+                # Mensaje
+                mensaje = row['mensaje']
+                if len(mensaje) > 200:
+                    with st.expander("📩 Ver mensaje completo"):
+                        st.markdown(mensaje)
+                else:
+                    st.markdown(f"**Mensaje:** {mensaje}")
+
+                # Campo para responder
+                respuesta_clave = f"respuesta_{row['id_consulta']}"
+                respuesta = st.text_area("Responder:", key=respuesta_clave, placeholder="Escribí aquí tu respuesta...")
+
+                if st.button("📨 Enviar respuesta", key=f"enviar_{row['id_consulta']}"):
+                    if not respuesta.strip():
+                        st.warning("No podés enviar una respuesta vacía.")
+                    else:
+                        try:
+                            update_query = f"""
+                                UPDATE consulta
+                                SET estado_consulta = 'Respondida'
+                                WHERE id_consulta = {row['id_consulta']}
+                            """
+                            execute_query(update_query, is_select=False)
+                            st.success("Respuesta enviada correctamente.")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error al guardar la respuesta: {e}")
+                st.markdown("---")
     else:
         st.info("No tenés consultas pendientes.")
 
-    # Mostrar las otras
+    # Mostrar las respondidas
     if not otras.empty:
-        st.subheader("📁 Consultas Respondidas / Cerradas")
+        st.markdown("<h3 style='color: #2C5282;'>Consultas Respondidas</h3>", unsafe_allow_html=True)
         for _, row in otras.iterrows():
-            mostrar_tarjeta(row)
+            with st.container():
+                st.markdown(f"### 💬 Producto: {row['nombre_producto']}")
+                st.markdown(f"**👤 Usuario:** {row['nombre_usuario']} | ✉️ {row['mail_usuario']}")
+                st.markdown(f"📅 Fecha: {pd.to_datetime(row['fecha']).strftime('%d/%m/%Y %H:%M')}")
+                st.markdown(f"🟢 Estado: `{row['estado_consulta']}`")
+                mensaje = row['mensaje']
+                if len(mensaje) > 200:
+                    with st.expander("📩 Ver mensaje completo"):
+                        st.markdown(mensaje)
+                else:
+                    st.markdown(f"**Mensaje:** {mensaje}")
+                st.markdown("---")
