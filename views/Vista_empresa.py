@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.layout import set_global_styles, add_logo_and_header, add_footer, add_page_specific_styles
 from utils.db import execute_query
-from views import productos_empresa, Ver_consultas  # Asegurate de que las rutas sean correctas
+from views import productos_empresa, Ver_consultas, Cargar_producto  # Asegurate de que las rutas sean correctas
 
 def mostrar():
     set_global_styles()
@@ -145,15 +145,18 @@ def mostrar():
     st.markdown("<h3 style='text-align:center;'>Panel de Control</h3>", unsafe_allow_html=True)
 
     # Pestañas
-    pestañas = st.tabs(["📦 Mis Productos", "📨 Consultas", "⚙️ Configuración"])
+    pestañas = st.tabs(["🗂️ Mis Productos", "➕ Cargar un nuevo producto", "💬 Consultas", "⚙️ Configuración"])
 
     with pestañas[0]:
         productos_empresa.mostrar()
 
     with pestañas[1]:
-        Ver_consultas.mostrar()
+        Cargar_producto.mostrar()
 
     with pestañas[2]:
+        Ver_consultas.mostrar()
+
+    with pestañas[3]:
         st.info("Aquí podés modificar la configuración de tu empresa.")
         st.write(f"**Nombre de la empresa:** {empresa.get('nombre', 'Sin nombre')}")
         st.write(f"**Correo registrado:** {empresa.get('mail', 'Sin correo')}")

@@ -17,11 +17,6 @@ def mostrar():
         st.error("No se encontró la sesión de empresa.")
         return
 
-    col1, col2 = st.columns([1, 6])
-    with col1:
-        if st.button("← Volver"):
-            st.session_state["vista"] = "vista_empresa"
-            st.rerun()
 
     st.markdown("---")
 

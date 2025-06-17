@@ -139,5 +139,13 @@ elif st.session_state["vista"] == "consultas_usuario":
     from views import Consultas_usuario
     Consultas_usuario.mostrar()
 
+# VISTA EDITAR PRODUCTO
+elif st.session_state["vista"] == "editar_producto":
+    from views import editar_producto
+    editar_producto.mostrar()
+
+
+
+
 
 add_footer()

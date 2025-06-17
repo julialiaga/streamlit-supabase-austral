@@ -68,7 +68,7 @@ def mostrar():
 
             if st.button("✏️ Editar", key=f"editar_{i}"):
                 st.session_state["producto_a_editar"] = row.to_dict()
-                st.session_state["vista"] = "Editar_producto"
+                st.session_state["vista"] = "editar_producto"
                 st.rerun()
 
             # Botón Eliminar
