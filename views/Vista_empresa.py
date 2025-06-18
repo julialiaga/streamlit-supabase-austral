@@ -207,8 +207,8 @@ def mostrar():
         st.success(st.session_state["mensaje_exito"])
         del st.session_state["mensaje_exito"]
 
-    # Botón volver (con callback optimizado)
-    if st.button("← Volver", key="volver_inicio"):
+    # Botón volver (con callback optimizado)# Botón de volver
+    if st.button("← Volver", key="volver_inicio", help="Cerrar sesión y volver al inicio"):
         # Limpiar cache relacionado con la empresa
         get_empresa_stats.clear()
         validate_empresa_session.clear()

@@ -326,7 +326,7 @@ def mostrar_formulario_consulta(producto):
         )
         
         # Información de contacto opcional
-        incluir_contacto = st.checkbox("Incluir mi información de contacto en el mensaje", key=f"contacto_{producto['id_producto']}")
+        #incluir_contacto = st.checkbox("Incluir mi información de contacto en el mensaje", key=f"contacto_{producto['id_producto']}")
         
         col_form1, col_form2 = st.columns(2)
         with col_form1:
@@ -339,9 +339,9 @@ def mostrar_formulario_consulta(producto):
             st.rerun()
 
         if enviar:
-            procesar_envio_consulta(producto, mensaje, incluir_contacto)
+            procesar_envio_consulta(producto, mensaje)
 
-def procesar_envio_consulta(producto, mensaje, incluir_contacto):
+def procesar_envio_consulta(producto, mensaje):
     """Función separada para procesar el envío de consulta"""
     if not mensaje.strip():
         st.error("Por favor, escribe un mensaje antes de enviar.")
@@ -355,23 +355,14 @@ def procesar_envio_consulta(producto, mensaje, incluir_contacto):
         st.error("Error: No se pudo identificar tu usuario. Por favor, inicia sesión nuevamente.")
         return
     
-    # Preparar mensaje final
-    mensaje_final = mensaje.strip()
-    if incluir_contacto:
-        mensaje_final += f"\n\n--- Información de contacto ---\nUsuario: {usuario.get('nombre', 'No especificado')}"
-        if usuario.get('email'):
-            mensaje_final += f"\nEmail: {usuario['email']}"
-    
-    # Escapar comillas para SQL
-    mensaje_sql = mensaje_final.replace("'", "''")
     
     id_usuario = usuario.get("id_usuario") or usuario.get("ID_usuario")
     id_empresa = producto["id_empresa"]
     id_producto = producto["id_producto"]
 
     query_insert = f"""
-        INSERT INTO consulta (id_usuario, id_empresa, id_producto, mensaje, fecha_consulta)
-        VALUES ({id_usuario}, {id_empresa}, {id_producto}, '{mensaje_sql}', NOW());
+        INSERT INTO consulta (id_usuario, id_empresa, id_producto, mensaje)
+        VALUES ({id_usuario}, {id_empresa}, {id_producto}, '{mensaje_sql}');
     """
 
     try:
@@ -382,6 +373,12 @@ def procesar_envio_consulta(producto, mensaje, incluir_contacto):
         if success:
             st.success("✅ ¡Consulta enviada exitosamente! La empresa se pondrá en contacto contigo pronto.")
             st.session_state[f"show_consulta_{producto['id_producto']}"] = False
+            
+            # *** NUEVO: LIMPIAR CACHE DESPUÉS DE ENVIAR CONSULTA EXITOSA ***
+            # Esto asegura que los datos se actualicen en la próxima carga
+            cargar_productos.clear()
+            cargar_coberturas.clear()
+            
             st.balloons()
             st.rerun()
         else:

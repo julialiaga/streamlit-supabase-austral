@@ -64,6 +64,20 @@ def limpiar_cache_relacionado():
             vista_empresa.get_empresa_stats.clear()
     except: pass
 
+def limpiar_formulario():
+    """Limpia todos los campos del formulario"""
+    # Limpiar coberturas seleccionadas
+    if "coberturas_seleccionadas" in st.session_state:
+        st.session_state.coberturas_seleccionadas = []
+    
+    # Limpiar campos individuales de coberturas
+    coberturas_df = cargar_coberturas()
+    if not coberturas_df.empty:
+        for _, cob in coberturas_df.iterrows():
+            key = f"cob_{cob['id_cobertura']}"
+            if key in st.session_state:
+                st.session_state[key] = False
+
 def mostrar_resumen_producto(datos):
     with st.expander("📄 Resumen del producto creado", expanded=True):
         st.write(f"*Nombre:* {datos['nombre']}")
@@ -119,7 +133,12 @@ def mostrar():
 
     coberturas_df = cargar_coberturas()
 
-    with st.form("form_cargar_producto", clear_on_submit=False):
+    # Verificar si hay que limpiar el formulario después de un éxito
+    if st.session_state.get("limpiar_form_producto", False):
+        limpiar_formulario()
+        st.session_state.limpiar_form_producto = False
+
+    with st.form("form_cargar_producto", clear_on_submit=True):
         st.markdown("### Información del Producto")
         col1, col2 = st.columns(2)
         with col1:
@@ -150,6 +169,7 @@ def mostrar():
 
         submitted = st.form_submit_button("Guardar Producto", type="primary")
 
+    # Procesar el formulario después del form
     if submitted:
         datos_producto = {
             'nombre': nombre, 'tipo': tipo, 'material': material, 'precio': precio,
@@ -166,13 +186,18 @@ def mostrar():
             if exito:
                 limpiar_cache_relacionado()
                 st.session_state["refresh_stats"] = True
-                st.session_state["mensaje_exito"] = "✅ Producto cargado correctamente."
-                st.session_state["vista"] = "vista_empresa"
-                st.rerun()
+                st.session_state["limpiar_form_producto"] = True
+                # Mostrar mensaje de éxito aquí mismo en lugar de redirigir
+                st.success("✅ Producto cargado correctamente.")
+                
+                # Mostrar resumen del producto creado
+                mostrar_resumen_producto(datos_guardados)
+                
+                # Botón para volver a la vista de empresa
+                if st.button("🏢 Volver a la vista de empresa", type="secondary"):
+                    st.session_state["vista"] = "vista_empresa"
+                    st.rerun()
             else:
                 st.error("❌ Ocurrió un error al guardar el producto.")
 
     st.markdown("---")
-
-    if st.session_state.get("mensaje_exito"):
-        st.success(st.session_state.pop("mensaje_exito"))
