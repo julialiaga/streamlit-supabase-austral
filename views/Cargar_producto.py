@@ -3,15 +3,12 @@ from utils.layout import set_global_styles, add_logo_and_header, add_footer, add
 from utils.db import execute_query
 
 # CACHE PRINCIPAL - Evita consultas repetitivas
-@st.cache_data(ttl=600)  # Cache por 10 minutos (coberturas cambian poco)
+@st.cache_data(ttl=600)
 def cargar_coberturas():
-    """Carga coberturas con cache para evitar consultas repetitivas"""
     return execute_query("SELECT * FROM coberturas ORDER BY nombre")
 
 def validar_producto_form(datos):
-    """Función separada para validar el formulario"""
     errores = []
-    
     if not datos['nombre'].strip():
         errores.append("El nombre es obligatorio.")
     if not datos['tipo']:
@@ -24,13 +21,10 @@ def validar_producto_form(datos):
         errores.append("El tiempo de entrega debe ser mayor a cero.")
     if not datos['descripcion'].strip():
         errores.append("La descripción es obligatoria.")
-    
     return errores
 
 def procesar_insercion_producto(datos, id_empresa, coberturas_seleccionadas):
-    """Función separada para procesar la inserción del producto"""
     try:
-        # Escapar strings para SQL
         nombre_sql = datos['nombre'].strip().replace("'", "''")
         tipo_sql = datos['tipo'].replace("'", "''")
         material_sql = datos['material'].strip().replace("'", "''")
@@ -52,7 +46,6 @@ def procesar_insercion_producto(datos, id_empresa, coberturas_seleccionadas):
             success = execute_query(insert_query, is_select=False)
 
         if success:
-            # Obtener el ID del nuevo producto
             id_query = f"""
                 SELECT id_producto FROM producto
                 WHERE id_empresa = {id_empresa}
@@ -61,7 +54,6 @@ def procesar_insercion_producto(datos, id_empresa, coberturas_seleccionadas):
             result = execute_query(id_query)
             id_producto = result.iloc[0]["id_producto"] if not result.empty else None
 
-            # Registrar coberturas si las hay
             if coberturas_seleccionadas and id_producto:
                 with st.spinner("Registrando coberturas..."):
                     for id_cob in coberturas_seleccionadas:
@@ -74,13 +66,12 @@ def procesar_insercion_producto(datos, id_empresa, coberturas_seleccionadas):
             return True, datos
         else:
             return False, None
-            
+
     except Exception as e:
         st.error(f"❌ Error inesperado: {str(e)}")
         return False, None
 
 def mostrar_resumen_producto(datos):
-    """Función separada para mostrar el resumen del producto"""
     with st.expander("📄 Resumen del producto creado", expanded=True):
         st.write(f"**Nombre:** {datos['nombre']}")
         st.write(f"**Tipo:** {datos['tipo']}")
@@ -94,39 +85,36 @@ def mostrar_resumen_producto(datos):
         st.write(f"**Descripción:** {datos['descripcion']}")
 
 def mostrar_coberturas_disponibles(coberturas_df):
-    """Función separada para mostrar las coberturas disponibles"""
     st.markdown("### 🏥 Coberturas Disponibles")
     coberturas_seleccionadas = []
 
     if not coberturas_df.empty:
-        # Usar session_state para mantener selecciones
         if "coberturas_seleccionadas" not in st.session_state:
             st.session_state.coberturas_seleccionadas = []
-        
+
         cols = st.columns(2)
         for idx, (_, cobertura) in enumerate(coberturas_df.iterrows()):
             col = cols[idx % 2]
             with col:
-                # Checkbox con estado persistente
                 checked = st.checkbox(
-                    f"{cobertura['nombre']} ({cobertura['porcentaje_cobertura']}%)", 
+                    f"{cobertura['nombre']} ({cobertura['porcentaje_cobertura']}%)",
                     key=f"cob_{cobertura['id_cobertura']}",
                     value=cobertura['id_cobertura'] in st.session_state.coberturas_seleccionadas
                 )
-                
+
                 if checked and cobertura['id_cobertura'] not in st.session_state.coberturas_seleccionadas:
                     st.session_state.coberturas_seleccionadas.append(cobertura['id_cobertura'])
                 elif not checked and cobertura['id_cobertura'] in st.session_state.coberturas_seleccionadas:
                     st.session_state.coberturas_seleccionadas.remove(cobertura['id_cobertura'])
-                
+
                 if checked:
                     coberturas_seleccionadas.append(cobertura['id_cobertura'])
-                    
+
                 if cobertura['descripcion']:
                     st.caption(cobertura['descripcion'])
     else:
         st.warning("⚠️ No hay coberturas disponibles.")
-    
+
     return coberturas_seleccionadas
 
 def mostrar():
@@ -146,51 +134,12 @@ def mostrar():
 
     st.markdown("---")
 
-    # CAMBIO PRINCIPAL: Cargar coberturas con cache
     with st.spinner("Cargando coberturas disponibles..."):
         coberturas_df = cargar_coberturas()
 
-    # Inicializar estado de éxito si no existe
-    if "producto_guardado_exitoso" not in st.session_state:
-        st.session_state.producto_guardado_exitoso = False
-
-    # Si el producto se guardó exitosamente, mostrar opciones
-    if st.session_state.producto_guardado_exitoso:
-        st.success("✅ Producto cargado exitosamente.")
-        st.balloons()
-        
-        # Mostrar resumen del último producto guardado
-        if "ultimo_producto_guardado" in st.session_state:
-            mostrar_resumen_producto(st.session_state.ultimo_producto_guardado)
-        
-        st.markdown("---")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("➕ Cargar otro producto", use_container_width=True):
-                # Limpiar estado y recargar
-                st.session_state.producto_guardado_exitoso = False
-                if "ultimo_producto_guardado" in st.session_state:
-                    del st.session_state.ultimo_producto_guardado
-                if "coberturas_seleccionadas" in st.session_state:
-                    del st.session_state.coberturas_seleccionadas
-                st.rerun()
-        with col2:
-            if st.button("🏠 Volver al menú de empresa", use_container_width=True):
-                # Limpiar estado y volver
-                st.session_state.producto_guardado_exitoso = False
-                if "ultimo_producto_guardado" in st.session_state:
-                    del st.session_state.ultimo_producto_guardado
-                if "coberturas_seleccionadas" in st.session_state:
-                    del st.session_state.coberturas_seleccionadas
-                st.session_state["vista"] = "vista_empresa"
-                st.rerun()
-        return
-
-    # Formulario principal
     with st.form("form_cargar_producto", clear_on_submit=False):
         st.markdown("### Información del Producto")
 
-        # Fila 1: Nombre y Tipo
         col1, col2 = st.columns(2)
         with col1:
             nombre = st.text_input("Nombre del producto *", placeholder="Ej: Prótesis transtibial deportiva")
@@ -205,21 +154,18 @@ def mostrar():
                 "Otras"
             ])
 
-        # Fila 2: Material y Precio
         col1, col2 = st.columns(2)
         with col1:
             material = st.text_input("Material *", placeholder="Ej: Fibra de carbono, Titanio, Silicona")
         with col2:
             precio = st.number_input("Precio (ARS) *", min_value=0.0, step=100.0, format="%.2f")
 
-        # Fila 3: Peso y Tiempo de entrega
         col1, col2 = st.columns(2)
         with col1:
             peso_importado = st.number_input("Peso (kg)", min_value=0.0, step=0.1, format="%.2f")
         with col2:
             tiempo_entrega = st.number_input("Tiempo de entrega (días) *", min_value=1, max_value=365, value=30)
 
-        # Fila 4: Stock e Imagen
         col1, col2 = st.columns(2)
         with col1:
             stock = st.number_input("Stock disponible", min_value=0, value=0)
@@ -228,14 +174,11 @@ def mostrar():
 
         descripcion = st.text_area("Descripción *", height=120, placeholder="Describe características y especificaciones...")
 
-        # CAMBIO: Usar función separada para coberturas
         coberturas_seleccionadas = mostrar_coberturas_disponibles(coberturas_df)
 
         submitted = st.form_submit_button("Guardar Producto", type="primary")
 
-    # Procesar envío del formulario
     if submitted:
-        # Recopilar datos del formulario
         datos_producto = {
             'nombre': nombre,
             'tipo': tipo,
@@ -248,7 +191,6 @@ def mostrar():
             'descripcion': descripcion
         }
 
-        # Validar datos
         errores = validar_producto_form(datos_producto)
 
         if errores:
@@ -256,31 +198,33 @@ def mostrar():
             for e in errores:
                 st.write(f"• {e}")
         else:
-            # Procesar inserción
             exito, datos_guardados = procesar_insercion_producto(
-                datos_producto, 
-                id_empresa, 
+                datos_producto,
+                id_empresa,
                 coberturas_seleccionadas
             )
-            
+
             if exito:
-                # Marcar como exitoso y guardar datos para mostrar resumen
-                st.session_state.producto_guardado_exitoso = True
-                st.session_state.ultimo_producto_guardado = datos_guardados
-                st.session_state.ultimo_producto_guardado['coberturas_count'] = len(coberturas_seleccionadas)
+                try:
+                    from views import productos_empresa
+                    if hasattr(productos_empresa, "obtener_productos_empresa"):
+                        productos_empresa.obtener_productos_empresa.clear()
+                    if hasattr(productos_empresa, "obtener_coberturas_producto"):
+                        productos_empresa.obtener_coberturas_producto.clear()
+                except Exception:
+                    pass
+
+                st.session_state["mensaje_exito"] = "✅ Producto cargado correctamente."
+                st.session_state["vista"] = "vista_empresa"
                 st.rerun()
             else:
                 st.error("❌ Ocurrió un error al guardar el producto.")
 
-    # Botón para actualizar coberturas si es necesario
     st.markdown("---")
     col1, col2 = st.columns([3, 1])
     with col1:
         st.caption("¿No encuentras la cobertura que buscas?")
     with col2:
         if st.button("🔄 Actualizar coberturas", help="Recargar lista de coberturas disponibles"):
-            # Limpiar cache de coberturas
             cargar_coberturas.clear()
             st.rerun()
-
-    # add_footer()  # Descomenta si usas footer

@@ -84,7 +84,6 @@ def get_custom_styles():
 def get_empresa_stats(id_empresa):
     """Obtiene las estadísticas de la empresa de forma eficiente."""
     try:
-        # Una sola consulta optimizada para obtener todas las estadísticas
         query = f"""
         SELECT 
             (SELECT COUNT(*) FROM producto WHERE id_empresa = {id_empresa}) as total_productos,
@@ -95,9 +94,9 @@ def get_empresa_stats(id_empresa):
              WHERE p.id_empresa = {id_empresa} 
              AND LOWER(TRIM(c.estado_consulta)) = 'pendiente') as consultas_pendientes
         """
-        
+
         result = execute_query(query)
-        
+
         if not result.empty:
             return {
                 'total_productos': int(result.iloc[0]['total_productos']),
@@ -125,7 +124,7 @@ def validate_empresa_session():
     empresa = st.session_state.get("empresa", {})
     id_empresa = empresa.get("id_empresa") or empresa.get("ID_empresa")
     nombre_empresa = empresa.get("nombre", "Tu Empresa")
-    
+
     return id_empresa, nombre_empresa, empresa
 
 def render_stats_cards(stats):
@@ -159,13 +158,13 @@ def render_welcome_header(nombre_empresa):
 def render_configuration_tab(empresa):
     """Renderiza la pestaña de configuración."""
     st.info("Aquí podés modificar la configuración de tu empresa.")
-    
+
     col1, col2 = st.columns(2)
     with col1:
         st.write(f"**Nombre de la empresa:** {empresa.get('nombre', 'Sin nombre')}")
     with col2:
         st.write(f"**Correo registrado:** {empresa.get('mail', 'Sin correo')}")
-    
+
     st.markdown("---")
     st.warning("Próximamente vas a poder editar los datos de tu empresa desde aquí.")
 
@@ -174,13 +173,13 @@ def mostrar():
     set_global_styles()
     add_logo_and_header()
     add_page_specific_styles("empresa")
-    
+
     # Aplicar estilos CSS cacheados
     st.markdown(get_custom_styles(), unsafe_allow_html=True)
 
     # Validar sesión de empresa
     id_empresa, nombre_empresa, empresa = validate_empresa_session()
-    
+
     if not id_empresa:
         st.error("No se encontró la sesión de empresa.")
         return
@@ -190,7 +189,7 @@ def mostrar():
         # Limpiar cache relacionado con la empresa
         get_empresa_stats.clear()
         validate_empresa_session.clear()
-        
+
         # Limpiar sesión
         if "empresa" in st.session_state:
             del st.session_state["empresa"]
@@ -203,7 +202,7 @@ def mostrar():
     # Obtener estadísticas (cacheadas)
     with st.spinner("Cargando estadísticas..."):
         stats = get_empresa_stats(id_empresa)
-    
+
     # Renderizar tarjetas de estadísticas
     render_stats_cards(stats)
 
