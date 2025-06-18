@@ -2,6 +2,7 @@ import streamlit as st
 from utils.layout import set_global_styles, add_logo_and_header, add_footer, add_page_specific_styles
 from utils.db import execute_query
 import pandas as pd
+import time
 
 @st.cache_data(ttl=300)
 def obtener_productos_empresa(id_empresa):
@@ -52,6 +53,39 @@ def eliminar_producto(id_producto):
         return True, None
     except Exception as e:
         return False, str(e)
+
+def limpiar_cache_productos():
+    """Función para limpiar todos los caches relacionados con productos"""
+    obtener_productos_empresa.clear()
+    obtener_coberturas_producto.clear()
+    
+    # IMPORTANTE: Limpiar específicamente el cache de estadísticas de empresa
+    try:
+        # Importar las funciones de vista_empresa para limpiar sus caches
+        from views.vista_empresa import get_empresa_stats, validate_empresa_session, clear_empresa_cache
+        get_empresa_stats.clear()
+        validate_empresa_session.clear()
+        clear_empresa_cache()
+    except ImportError:
+        # Si no se puede importar, intentar limpiar por session_state
+        pass
+    
+    # Señalizar que las estadísticas necesitan actualizarse
+    st.session_state['refresh_stats'] = True
+    st.session_state['productos_updated_timestamp'] = time.time()
+    st.session_state['force_refresh_empresa'] = True
+
+def limpiar_estados_eliminacion(producto_id):
+    """Limpia todos los estados relacionados con la eliminación de un producto específico"""
+    keys_to_remove = []
+    for key in st.session_state.keys():
+        if (key.startswith(f"confirmar_eliminacion_{producto_id}") or 
+            key.startswith(f"opcion_eliminar_{producto_id}") or
+            key.startswith(f"confirmar_si_{producto_id}")):
+            keys_to_remove.append(key)
+    
+    for key in keys_to_remove:
+        st.session_state.pop(key, None)
 
 def mostrar():
     empresa = st.session_state.get("empresa", {})
@@ -118,7 +152,7 @@ def mostrar():
         with col2:
             st.markdown("<div style='display: flex; flex-direction: column; gap: 0.5rem; padding-top: 1rem;'>", unsafe_allow_html=True)
 
-            if st.button("✏️ Editar", key=f"editar_{producto_id}_{pagina_actual}"):
+            if st.button("✏ Editar", key=f"editar_{producto_id}_{pagina_actual}"):
                 st.session_state["producto_a_editar"] = row.to_dict()
                 st.session_state["vista"] = "editar_producto"
                 st.rerun()
@@ -128,7 +162,7 @@ def mostrar():
                 st.session_state[confirmacion_key] = True
 
             if st.session_state.get(confirmacion_key, False):
-                st.warning("⚠️ ¿Estás segura/o de que quieres eliminar este producto?")
+                st.warning("⚠ ¿Estás segura/o de que quieres eliminar este producto?")
                 opcion_key = f"opcion_eliminar_{producto_id}"
                 opcion = st.radio("Seleccioná una opción:", options=["No", "Sí"], key=opcion_key, horizontal=True)
 
@@ -139,19 +173,24 @@ def mostrar():
                             exito, error = eliminar_producto(producto_id)
 
                         if exito:
-                            obtener_productos_empresa.clear()
-                            obtener_coberturas_producto.clear()
+                            # Limpiar todos los caches y estados relacionados
+                            limpiar_cache_productos()
+                            limpiar_estados_eliminacion(producto_id)
+                            
+                            # Mostrar mensaje de éxito
                             st.success("✅ Producto eliminado exitosamente.")
-                            for key in list(st.session_state.keys()):
-                                if key.startswith(f"confirmar_eliminacion_{producto_id}") or key.startswith(f"opcion_eliminar_{producto_id}"):
-                                    st.session_state.pop(key)
+                            
+                            # Pequeña pausa para que el usuario vea el mensaje
+                            time.sleep(0.5)
+                            
+                            # Rerun para actualizar la vista
                             st.rerun()
                         else:
                             st.error(f"❌ Error al eliminar producto: {error}")
                     else:
                         st.info("Eliminación cancelada.")
-                        st.session_state.pop(confirmacion_key, None)
-                        st.session_state.pop(opcion_key, None)
+                        limpiar_estados_eliminacion(producto_id)
+                        st.rerun()
 
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -159,3 +198,7 @@ def mostrar():
         st.markdown("---")
         st.caption(f"Mostrando productos {inicio + 1}-{fin} de {total_productos}")
 
+    # Agregar botón para refrescar manualmente si es necesario
+    if st.button("🔄 Actualizar Lista", key="refresh_productos"):
+        limpiar_cache_productos()
+        st.rerun()

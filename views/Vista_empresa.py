@@ -3,6 +3,7 @@ from utils.layout import set_global_styles, add_logo_and_header, add_footer, add
 from utils.db import execute_query
 from views import productos_empresa, Ver_consultas, Cargar_producto
 import pandas as pd
+import time
 
 # Cache para estilos CSS
 @st.cache_data
@@ -79,9 +80,9 @@ def get_custom_styles():
     </style>
     """
 
-# Cache para estadísticas de la empresa
-@st.cache_data(ttl=60)  # Cache por 60 segundos
-def get_empresa_stats(id_empresa):
+# Cache para estadísticas de la empresa - MODIFICADO para detectar actualizaciones
+@st.cache_data(ttl=60, show_spinner=False)
+def get_empresa_stats(id_empresa, timestamp=None):
     """Obtiene las estadísticas de la empresa de forma eficiente."""
     try:
         query = f"""
@@ -127,6 +128,23 @@ def validate_empresa_session():
 
     return id_empresa, nombre_empresa, empresa
 
+def check_and_refresh_cache():
+    """Verifica y actualiza el cache si es necesario"""
+    # Verificar si hay señales de actualización
+    if (st.session_state.get('refresh_stats', False) or 
+        st.session_state.get('force_refresh_empresa', False) or
+        st.session_state.get('productos_updated_timestamp', 0) > 0):
+        
+        # Limpiar caches
+        get_empresa_stats.clear()
+        
+        # Limpiar las señales
+        st.session_state.pop('refresh_stats', None)
+        st.session_state.pop('force_refresh_empresa', None)
+        
+        return True
+    return False
+
 def render_stats_cards(stats):
     """Renderiza las tarjetas de estadísticas."""
     st.markdown(f"""
@@ -161,9 +179,9 @@ def render_configuration_tab(empresa):
 
     col1, col2 = st.columns(2)
     with col1:
-        st.write(f"**Nombre de la empresa:** {empresa.get('nombre', 'Sin nombre')}")
+        st.write(f"*Nombre de la empresa:* {empresa.get('nombre', 'Sin nombre')}")
     with col2:
-        st.write(f"**Correo registrado:** {empresa.get('mail', 'Sin correo')}")
+        st.write(f"*Correo registrado:* {empresa.get('mail', 'Sin correo')}")
 
     st.markdown("---")
     st.warning("Próximamente vas a poder editar los datos de tu empresa desde aquí.")
@@ -184,6 +202,11 @@ def mostrar():
         st.error("No se encontró la sesión de empresa.")
         return
 
+    # Mostrar mensaje de éxito si existe
+    if "mensaje_exito" in st.session_state:
+        st.success(st.session_state["mensaje_exito"])
+        del st.session_state["mensaje_exito"]
+
     # Botón volver (con callback optimizado)
     if st.button("← Volver", key="volver_inicio"):
         # Limpiar cache relacionado con la empresa
@@ -193,25 +216,37 @@ def mostrar():
         # Limpiar sesión
         if "empresa" in st.session_state:
             del st.session_state["empresa"]
+        if "refresh_stats" in st.session_state:
+            del st.session_state["refresh_stats"]
         st.session_state["vista"] = "inicio"
         st.rerun()
 
     # Renderizar header de bienvenida
     render_welcome_header(nombre_empresa)
 
-    # Obtener estadísticas (cacheadas)
+    # VERIFICAR Y ACTUALIZAR CACHE SI ES NECESARIO
+    cache_was_refreshed = check_and_refresh_cache()
+
+    # Obtener estadísticas con timestamp para forzar actualización
+    timestamp = st.session_state.get('productos_updated_timestamp', time.time())
+    
     with st.spinner("Cargando estadísticas..."):
-        stats = get_empresa_stats(id_empresa)
+        stats = get_empresa_stats(id_empresa, timestamp=timestamp)
 
     # Renderizar tarjetas de estadísticas
     render_stats_cards(stats)
+
+    # Si el cache fue actualizado, mostrar confirmación visual
+    if cache_was_refreshed:
+        st.success("✅ Estadísticas actualizadas", icon="🔄")
+        time.sleep(0.5)  # Breve pausa para que se vea el mensaje
 
     # Separador visual
     st.markdown("---")
     st.markdown("<h3 style='text-align:center;'>Panel de Control</h3>", unsafe_allow_html=True)
 
     # Pestañas optimizadas
-    tab1, tab2, tab3, tab4 = st.tabs(["🗂️ Mis Productos", "➕ Cargar un nuevo producto", "💬 Consultas", "⚙️ Configuración"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🗂 Mis Productos", "➕ Cargar un nuevo producto", "💬 Consultas", "⚙ Configuración"])
 
     with tab1:
         with st.container():
@@ -234,3 +269,6 @@ def clear_empresa_cache():
     """Limpia el cache relacionado con la empresa."""
     get_empresa_stats.clear()
     validate_empresa_session.clear()
+    
+    # Agregar señal de actualización
+    st.session_state['refresh_stats'] = True
