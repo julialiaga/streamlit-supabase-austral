@@ -2,6 +2,133 @@ import streamlit as st
 from utils.layout import set_global_styles, add_logo_and_header, add_footer, add_page_specific_styles
 from utils.db import execute_query
 
+# CACHE PRINCIPAL - Evita consultas repetitivas
+@st.cache_data(ttl=600)  # Cache por 10 minutos (coberturas cambian poco)
+def cargar_coberturas():
+    """Carga coberturas con cache para evitar consultas repetitivas"""
+    return execute_query("SELECT * FROM coberturas ORDER BY nombre")
+
+def validar_producto_form(datos):
+    """Función separada para validar el formulario"""
+    errores = []
+    
+    if not datos['nombre'].strip():
+        errores.append("El nombre es obligatorio.")
+    if not datos['tipo']:
+        errores.append("Debes seleccionar un tipo de prótesis.")
+    if not datos['material'].strip():
+        errores.append("El material es obligatorio.")
+    if datos['precio'] <= 0:
+        errores.append("El precio debe ser mayor a cero.")
+    if datos['tiempo_entrega'] <= 0:
+        errores.append("El tiempo de entrega debe ser mayor a cero.")
+    if not datos['descripcion'].strip():
+        errores.append("La descripción es obligatoria.")
+    
+    return errores
+
+def procesar_insercion_producto(datos, id_empresa, coberturas_seleccionadas):
+    """Función separada para procesar la inserción del producto"""
+    try:
+        # Escapar strings para SQL
+        nombre_sql = datos['nombre'].strip().replace("'", "''")
+        tipo_sql = datos['tipo'].replace("'", "''")
+        material_sql = datos['material'].strip().replace("'", "''")
+        descripcion_sql = datos['descripcion'].strip().replace("'", "''")
+        imagen_sql = f"'{datos['imagen'].strip()}'" if datos['imagen'].strip() else "NULL"
+        peso_sql = datos['peso_importado'] if datos['peso_importado'] > 0 else "NULL"
+
+        insert_query = f"""
+            INSERT INTO producto (
+                id_empresa, nombre, tipo, material, precio,
+                peso_importado, tiempo_entrega, imagen, descripcion, stock
+            ) VALUES (
+                {id_empresa}, '{nombre_sql}', '{tipo_sql}', '{material_sql}', {datos['precio']},
+                {peso_sql}, {datos['tiempo_entrega']}, {imagen_sql}, '{descripcion_sql}', {datos['stock']}
+            );
+        """
+
+        with st.spinner("Guardando producto..."):
+            success = execute_query(insert_query, is_select=False)
+
+        if success:
+            # Obtener el ID del nuevo producto
+            id_query = f"""
+                SELECT id_producto FROM producto
+                WHERE id_empresa = {id_empresa}
+                ORDER BY id_producto DESC LIMIT 1;
+            """
+            result = execute_query(id_query)
+            id_producto = result.iloc[0]["id_producto"] if not result.empty else None
+
+            # Registrar coberturas si las hay
+            if coberturas_seleccionadas and id_producto:
+                with st.spinner("Registrando coberturas..."):
+                    for id_cob in coberturas_seleccionadas:
+                        insert_cob = f"""
+                            INSERT INTO producto_cobertura (id_producto, id_cobertura)
+                            VALUES ({id_producto}, {id_cob});
+                        """
+                        execute_query(insert_cob, is_select=False)
+
+            return True, datos
+        else:
+            return False, None
+            
+    except Exception as e:
+        st.error(f"❌ Error inesperado: {str(e)}")
+        return False, None
+
+def mostrar_resumen_producto(datos):
+    """Función separada para mostrar el resumen del producto"""
+    with st.expander("📄 Resumen del producto creado", expanded=True):
+        st.write(f"**Nombre:** {datos['nombre']}")
+        st.write(f"**Tipo:** {datos['tipo']}")
+        st.write(f"**Material:** {datos['material']}")
+        st.write(f"**Precio:** ${datos['precio']:,.2f}")
+        if datos['peso_importado'] > 0:
+            st.write(f"**Peso:** {datos['peso_importado']} kg")
+        st.write(f"**Tiempo de entrega:** {datos['tiempo_entrega']} días")
+        if datos['imagen'].strip():
+            st.image(datos['imagen'], width=200)
+        st.write(f"**Descripción:** {datos['descripcion']}")
+
+def mostrar_coberturas_disponibles(coberturas_df):
+    """Función separada para mostrar las coberturas disponibles"""
+    st.markdown("### 🏥 Coberturas Disponibles")
+    coberturas_seleccionadas = []
+
+    if not coberturas_df.empty:
+        # Usar session_state para mantener selecciones
+        if "coberturas_seleccionadas" not in st.session_state:
+            st.session_state.coberturas_seleccionadas = []
+        
+        cols = st.columns(2)
+        for idx, (_, cobertura) in enumerate(coberturas_df.iterrows()):
+            col = cols[idx % 2]
+            with col:
+                # Checkbox con estado persistente
+                checked = st.checkbox(
+                    f"{cobertura['nombre']} ({cobertura['porcentaje_cobertura']}%)", 
+                    key=f"cob_{cobertura['id_cobertura']}",
+                    value=cobertura['id_cobertura'] in st.session_state.coberturas_seleccionadas
+                )
+                
+                if checked and cobertura['id_cobertura'] not in st.session_state.coberturas_seleccionadas:
+                    st.session_state.coberturas_seleccionadas.append(cobertura['id_cobertura'])
+                elif not checked and cobertura['id_cobertura'] in st.session_state.coberturas_seleccionadas:
+                    st.session_state.coberturas_seleccionadas.remove(cobertura['id_cobertura'])
+                
+                if checked:
+                    coberturas_seleccionadas.append(cobertura['id_cobertura'])
+                    
+                if cobertura['descripcion']:
+                    st.caption(cobertura['descripcion'])
+    else:
+        st.warning("⚠️ No hay coberturas disponibles.")
+    
+    return coberturas_seleccionadas
+
 def mostrar():
     set_global_styles()
     add_logo_and_header()
@@ -17,9 +144,49 @@ def mostrar():
         st.error("No se encontró la sesión de empresa.")
         return
 
-
     st.markdown("---")
 
+    # CAMBIO PRINCIPAL: Cargar coberturas con cache
+    with st.spinner("Cargando coberturas disponibles..."):
+        coberturas_df = cargar_coberturas()
+
+    # Inicializar estado de éxito si no existe
+    if "producto_guardado_exitoso" not in st.session_state:
+        st.session_state.producto_guardado_exitoso = False
+
+    # Si el producto se guardó exitosamente, mostrar opciones
+    if st.session_state.producto_guardado_exitoso:
+        st.success("✅ Producto cargado exitosamente.")
+        st.balloons()
+        
+        # Mostrar resumen del último producto guardado
+        if "ultimo_producto_guardado" in st.session_state:
+            mostrar_resumen_producto(st.session_state.ultimo_producto_guardado)
+        
+        st.markdown("---")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("➕ Cargar otro producto", use_container_width=True):
+                # Limpiar estado y recargar
+                st.session_state.producto_guardado_exitoso = False
+                if "ultimo_producto_guardado" in st.session_state:
+                    del st.session_state.ultimo_producto_guardado
+                if "coberturas_seleccionadas" in st.session_state:
+                    del st.session_state.coberturas_seleccionadas
+                st.rerun()
+        with col2:
+            if st.button("🏠 Volver al menú de empresa", use_container_width=True):
+                # Limpiar estado y volver
+                st.session_state.producto_guardado_exitoso = False
+                if "ultimo_producto_guardado" in st.session_state:
+                    del st.session_state.ultimo_producto_guardado
+                if "coberturas_seleccionadas" in st.session_state:
+                    del st.session_state.coberturas_seleccionadas
+                st.session_state["vista"] = "vista_empresa"
+                st.rerun()
+        return
+
+    # Formulario principal
     with st.form("form_cargar_producto", clear_on_submit=False):
         st.markdown("### Información del Producto")
 
@@ -61,111 +228,59 @@ def mostrar():
 
         descripcion = st.text_area("Descripción *", height=120, placeholder="Describe características y especificaciones...")
 
-        # Coberturas
-        st.markdown("### 🏥 Coberturas Disponibles")
-        coberturas_df = execute_query("SELECT * FROM coberturas ORDER BY nombre")
-        coberturas_seleccionadas = []
-
-        if not coberturas_df.empty:
-            cols = st.columns(2)
-            for idx, (_, cobertura) in enumerate(coberturas_df.iterrows()):
-                col = cols[idx % 2]
-                with col:
-                    if st.checkbox(f"{cobertura['nombre']} ({cobertura['porcentaje_cobertura']}%)", key=f"cob_{cobertura['id_cobertura']}"):
-                        coberturas_seleccionadas.append(cobertura['id_cobertura'])
-                    if cobertura['descripcion']:
-                        st.caption(cobertura['descripcion'])
-        else:
-            st.warning("⚠️ No hay coberturas disponibles.")
+        # CAMBIO: Usar función separada para coberturas
+        coberturas_seleccionadas = mostrar_coberturas_disponibles(coberturas_df)
 
         submitted = st.form_submit_button("Guardar Producto", type="primary")
 
+    # Procesar envío del formulario
     if submitted:
-        errores = []
-        if not nombre.strip():
-            errores.append("El nombre es obligatorio.")
-        if not tipo:
-            errores.append("Debes seleccionar un tipo de prótesis.")
-        if not material.strip():
-            errores.append("El material es obligatorio.")
-        if precio <= 0:
-            errores.append("El precio debe ser mayor a cero.")
-        if tiempo_entrega <= 0:
-            errores.append("El tiempo de entrega debe ser mayor a cero.")
-        if not descripcion.strip():
-            errores.append("La descripción es obligatoria.")
+        # Recopilar datos del formulario
+        datos_producto = {
+            'nombre': nombre,
+            'tipo': tipo,
+            'material': material,
+            'precio': precio,
+            'peso_importado': peso_importado,
+            'tiempo_entrega': tiempo_entrega,
+            'stock': stock,
+            'imagen': imagen,
+            'descripcion': descripcion
+        }
+
+        # Validar datos
+        errores = validar_producto_form(datos_producto)
 
         if errores:
             st.warning("⚠️ Corrige los siguientes errores:")
             for e in errores:
                 st.write(f"• {e}")
         else:
-            try:
-                nombre_sql = nombre.strip().replace("'", "''")
-                tipo_sql = tipo.replace("'", "''")
-                material_sql = material.strip().replace("'", "''")
-                descripcion_sql = descripcion.strip().replace("'", "''")
-                imagen_sql = f"'{imagen.strip()}'" if imagen.strip() else "NULL"
-                peso_sql = peso_importado if peso_importado > 0 else "NULL"
+            # Procesar inserción
+            exito, datos_guardados = procesar_insercion_producto(
+                datos_producto, 
+                id_empresa, 
+                coberturas_seleccionadas
+            )
+            
+            if exito:
+                # Marcar como exitoso y guardar datos para mostrar resumen
+                st.session_state.producto_guardado_exitoso = True
+                st.session_state.ultimo_producto_guardado = datos_guardados
+                st.session_state.ultimo_producto_guardado['coberturas_count'] = len(coberturas_seleccionadas)
+                st.rerun()
+            else:
+                st.error("❌ Ocurrió un error al guardar el producto.")
 
-                insert_query = f"""
-                    INSERT INTO producto (
-                        id_empresa, nombre, tipo, material, precio,
-                        peso_importado, tiempo_entrega, imagen, descripcion, stock
-                    ) VALUES (
-                        {id_empresa}, '{nombre_sql}', '{tipo_sql}', '{material_sql}', {precio},
-                        {peso_sql}, {tiempo_entrega}, {imagen_sql}, '{descripcion_sql}', {stock}
-                    );
-                """
+    # Botón para actualizar coberturas si es necesario
+    st.markdown("---")
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.caption("¿No encuentras la cobertura que buscas?")
+    with col2:
+        if st.button("🔄 Actualizar coberturas", help="Recargar lista de coberturas disponibles"):
+            # Limpiar cache de coberturas
+            cargar_coberturas.clear()
+            st.rerun()
 
-                success = execute_query(insert_query, is_select=False)
-
-                if success:
-                    # Obtener el ID del nuevo producto
-                    id_query = f"""
-                        SELECT id_producto FROM producto
-                        WHERE id_empresa = {id_empresa}
-                        ORDER BY id_producto DESC LIMIT 1;
-                    """
-                    result = execute_query(id_query)
-                    id_producto = result.iloc[0]["id_producto"] if not result.empty else None
-
-                    # Registrar coberturas
-                    for id_cob in coberturas_seleccionadas:
-                        insert_cob = f"""
-                            INSERT INTO producto_cobertura (id_producto, id_cobertura)
-                            VALUES ({id_producto}, {id_cob});
-                        """
-                        execute_query(insert_cob, is_select=False)
-
-                    st.success("✅ Producto cargado exitosamente.")
-                    st.balloons()
-
-                    with st.expander("📄 Resumen del producto creado", expanded=True):
-                        st.write(f"**Nombre:** {nombre}")
-                        st.write(f"**Tipo:** {tipo}")
-                        st.write(f"**Material:** {material}")
-                        st.write(f"**Precio:** ${precio:,.2f}")
-                        if peso_importado > 0:
-                            st.write(f"**Peso:** {peso_importado} kg")
-                        st.write(f"**Tiempo de entrega:** {tiempo_entrega} días")
-                        if imagen.strip():
-                            st.image(imagen, width=200)
-                        st.write(f"**Descripción:** {descripcion}")
-                        st.write(f"**Coberturas seleccionadas:** {len(coberturas_seleccionadas)}")
-
-                    st.markdown("---")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("➕ Cargar otro producto", use_container_width=True):
-                            st.session_state["vista"] = "Cargar_producto"
-                            st.rerun()
-                    with col2:
-                        if st.button("🏠 Volver al menú de empresa", use_container_width=True):
-                            st.session_state["vista"] = "vista_empresa"
-                            st.rerun()
-                else:
-                    st.error("❌ Ocurrió un error al guardar el producto.")
-            except Exception as e:
-                st.error("❌ Error inesperado:")
-                st.code(str(e))
+    # add_footer()  # Descomenta si usas footer
