@@ -6,7 +6,7 @@ import pandas as pd
 @st.cache_data(ttl=180)
 def obtener_consultas(id_empresa):
     query = f"""
-        SELECT c.id_consulta, c.mensaje, c.fecha, c.estado_consulta,
+        SELECT c.id_consulta, c.mensaje, c.fecha, c.estado_consulta, c.respuesta,
                u.nombre AS nombre_usuario, u.mail AS mail_usuario,
                p.nombre AS nombre_producto
         FROM consulta c
@@ -49,8 +49,9 @@ def mostrar():
             st.markdown(f"### 💬 Producto: {row['nombre_producto']}")
             st.markdown(f"**👤 Usuario:** {row['nombre_usuario']} | ✉️ {row['mail_usuario']}")
             st.markdown(f"📅 Fecha: {row['fecha_formateada']}")
-            st.markdown(f"🟢 Estado: `{row['estado_consulta']}`")
+            st.markdown(f" Estado: `{row['estado_consulta']}`")
 
+            # Mostrar mensaje del usuario
             mensaje = row['mensaje']
             if len(mensaje) > 200:
                 with st.expander("📩 Ver mensaje completo"):
@@ -58,18 +59,30 @@ def mostrar():
             else:
                 st.markdown(f"**Mensaje:** {mensaje}")
 
+            # Mostrar respuesta si existe
+            if not responder and row['respuesta']:
+                st.markdown("###  Tu respuesta:")
+                respuesta = row['respuesta']
+                if len(respuesta) > 200:
+                    with st.expander("📄 Ver respuesta completa"):
+                        st.markdown(f"*{respuesta}*")
+                else:
+                    st.markdown(f"{respuesta}")
+
+            # Formulario para responder (solo para pendientes)
             if responder:
                 respuesta_key = f"respuesta_{row['id_consulta']}"
-                respuesta = st.text_area("✏️ Responder:", key=respuesta_key, placeholder="Escribí aquí tu respuesta...")
+                respuesta = st.text_area(" Responder:", key=respuesta_key, placeholder="Escribí aquí tu respuesta...")
 
                 if st.button("📨 Enviar respuesta", key=f"enviar_{row['id_consulta']}"):
                     if not respuesta.strip():
                         st.warning("No podés enviar una respuesta vacía.")
                     else:
                         try:
+                            # Actualizar estado y guardar respuesta
                             update_query = f"""
                                 UPDATE consulta
-                                SET estado_consulta = 'Respondida'
+                                SET estado_consulta = 'Respondida', respuesta = '{respuesta.replace("'", "''")}'
                                 WHERE id_consulta = {row['id_consulta']}
                             """
                             execute_query(update_query, is_select=False)
@@ -81,7 +94,7 @@ def mostrar():
             st.markdown("---")
 
     # Mostrar pendientes
-    st.markdown("<h3 style='color: #2c5282;'> Consultas Pendientes</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #2c5282;'>🔄 Consultas Pendientes</h3>", unsafe_allow_html=True)
     if not pendientes.empty:
         for _, row in pendientes.iterrows():
             render_consulta(row, responder=True)
@@ -89,7 +102,9 @@ def mostrar():
         st.info("No tenés consultas pendientes.")
 
     # Mostrar respondidas
-    st.markdown("<h3 style='color: #2c5282;'> Consultas Respondidas</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #2c5282;'>✅ Consultas Respondidas</h3>", unsafe_allow_html=True)
     if not respondidas.empty:
         for _, row in respondidas.iterrows():
             render_consulta(row)
+    else:
+        st.info("No tenés consultas respondidas aún.")

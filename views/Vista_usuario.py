@@ -355,6 +355,12 @@ def procesar_envio_consulta(producto, mensaje):
         st.error("Error: No se pudo identificar tu usuario. Por favor, inicia sesión nuevamente.")
         return
     
+    # Preparar mensaje final
+    mensaje_final = mensaje.strip()
+
+    
+    # Escapar comillas para SQL
+    mensaje_sql = mensaje_final.replace("'", "''")
     
     id_usuario = usuario.get("id_usuario") or usuario.get("ID_usuario")
     id_empresa = producto["id_empresa"]
